@@ -1,0 +1,44 @@
+{
+  "name": "celebrai",
+  "version": "1.0.0",
+  "description": "CelebrAI — Intelligent Celebration & Event Planner (PromptWars Virtual Challenge 5)",
+  "author": "CelebrAI Engineering Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev:client": "cd client && npm run dev",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc -p server",
+    "build:client": "cd client && npm run build",
+    "start": "node server/dist/server/src/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p shared --noEmit && tsc -p server --noEmit && cd client && npm run typecheck",
+    "audit:repo": "node scripts/repoSizeAudit.cjs"
+  },
+  "dependencies": {
+    "@google/genai": "^2.31.0",
+    "better-sqlite3": "^13.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.9",
+    "express": "^5.3.0",
+    "express-rate-limit": "^8.7.1",
+    "helmet": "^8.3.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.5",
+    "@types/supertest": "^7.2.1",
+    "concurrently": "^10.0.6",
+    "supertest": "^7.3.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
