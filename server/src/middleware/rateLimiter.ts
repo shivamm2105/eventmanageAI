@@ -14,3 +14,18 @@ export const aiRateLimiter = rateLimit({
     },
   },
 });
+
+export const systemConfigRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 mins
+  max: 20, // 20 attempts per 15 mins
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: {
+      code: 'RATE_LIMIT_EXCEEDED',
+      message: 'Too many configuration attempts from this IP. Please wait before retrying.',
+    },
+  },
+});
+

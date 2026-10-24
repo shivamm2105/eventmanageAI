@@ -5,6 +5,7 @@ import path from 'path';
 import { config } from '../config';
 import { getDatabase } from '../db';
 import { testGeminiApiKey } from '../services/aiService';
+import { systemConfigRateLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -63,7 +64,10 @@ const configureAiSchema = z.object({
  * POST /api/system/configure-ai
  * Allows live configuration and verification of a Gemini API Key without needing shell access.
  */
-router.post('/system/configure-ai', async (req: Request, res: Response, next: NextFunction) => {
+router.post(
+  '/system/configure-ai',
+  systemConfigRateLimiter,
+  async (req: Request, res: Response, next: NextFunction) => {
   try {
     const parsed = configureAiSchema.parse(req.body);
     const preferredModel = parsed.model || config.geminiModel || 'gemini-2.5-flash';
@@ -76,26 +80,28 @@ router.post('/system/configure-ai', async (req: Request, res: Response, next: Ne
     config.geminiModel = testResult.model;
     config.isAiConfigured = true;
 
-    // Safely write/update .env file (which is gitignored) so key persists
-    try {
-      const envPath = path.resolve(process.cwd(), '.env');
-      let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '';
+    // Safely write/update .env file (which is gitignored) so key persists (skip during automated test runs)
+    if (config.nodeEnv !== 'test') {
+      try {
+        const envPath = path.resolve(process.cwd(), '.env');
+        let envContent = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf-8') : '';
 
-      if (envContent.includes('GEMINI_API_KEY=')) {
-        envContent = envContent.replace(/GEMINI_API_KEY=.*$/m, `GEMINI_API_KEY=${parsed.apiKey.trim()}`);
-      } else {
-        envContent += `\nGEMINI_API_KEY=${parsed.apiKey.trim()}`;
+        if (envContent.includes('GEMINI_API_KEY=')) {
+          envContent = envContent.replace(/GEMINI_API_KEY=.*$/m, `GEMINI_API_KEY=${parsed.apiKey.trim()}`);
+        } else {
+          envContent += `\nGEMINI_API_KEY=${parsed.apiKey.trim()}`;
+        }
+
+        if (envContent.includes('GEMINI_MODEL=')) {
+          envContent = envContent.replace(/GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${testResult.model}`);
+        } else {
+          envContent += `\nGEMINI_MODEL=${testResult.model}`;
+        }
+
+        fs.writeFileSync(envPath, envContent.trim() + '\n', 'utf-8');
+      } catch (fsErr) {
+        console.warn('Could not persist key to .env, key active in memory only:', fsErr);
       }
-
-      if (envContent.includes('GEMINI_MODEL=')) {
-        envContent = envContent.replace(/GEMINI_MODEL=.*$/m, `GEMINI_MODEL=${testResult.model}`);
-      } else {
-        envContent += `\nGEMINI_MODEL=${testResult.model}`;
-      }
-
-      fs.writeFileSync(envPath, envContent.trim() + '\n', 'utf-8');
-    } catch (fsErr) {
-      console.warn('Could not persist key to .env, key active in memory only:', fsErr);
     }
 
     res.json({
@@ -117,15 +123,17 @@ router.post('/system/disconnect-ai', (_req: Request, res: Response) => {
   config.geminiApiKey = '';
   config.isAiConfigured = false;
 
-  try {
-    const envPath = path.resolve(process.cwd(), '.env');
-    if (fs.existsSync(envPath)) {
-      let envContent = fs.readFileSync(envPath, 'utf-8');
-      envContent = envContent.replace(/GEMINI_API_KEY=.*$/m, 'GEMINI_API_KEY=');
-      fs.writeFileSync(envPath, envContent, 'utf-8');
+  if (config.nodeEnv !== 'test') {
+    try {
+      const envPath = path.resolve(process.cwd(), '.env');
+      if (fs.existsSync(envPath)) {
+        let envContent = fs.readFileSync(envPath, 'utf-8');
+        envContent = envContent.replace(/GEMINI_API_KEY=.*$/m, 'GEMINI_API_KEY=');
+        fs.writeFileSync(envPath, envContent, 'utf-8');
+      }
+    } catch (fsErr) {
+      console.warn('Could not clear key in .env:', fsErr);
     }
-  } catch (fsErr) {
-    console.warn('Could not clear key in .env:', fsErr);
   }
 
   res.json({

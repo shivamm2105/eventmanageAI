@@ -40,6 +40,17 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
     return calculateBudgetSummary(totalBudget, items, contingencyPercent);
   }, [totalBudget, items, contingencyPercent]);
 
+  React.useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal]);
+
   const handleUpdateItem = (
     id: string,
     field: 'estimatedAmount' | 'actualAmount' | 'notes',
@@ -270,6 +281,7 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
                         value={item.notes || ''}
                         onChange={(e) => handleUpdateItem(item.id, 'notes', e.target.value)}
                         placeholder="Add notes..."
+                        aria-label={`Notes for ${item.category}`}
                         className="w-full px-2 py-1 rounded bg-slate-950/80 border border-slate-800 text-xs text-slate-300 focus:outline-none focus:border-brand-500"
                       />
                     </td>
@@ -283,6 +295,7 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
                         onChange={(e) =>
                           handleUpdateItem(item.id, 'estimatedAmount', e.target.value)
                         }
+                        aria-label={`AI proposed estimate for ${item.category}`}
                         className="w-28 text-right font-mono px-2 py-1 rounded bg-slate-950/80 border border-slate-800 text-slate-300 focus:outline-none focus:border-brand-500"
                       />
                     </td>
@@ -297,6 +310,7 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
                           handleUpdateItem(item.id, 'actualAmount', e.target.value)
                         }
                         placeholder="0"
+                        aria-label={`User confirmed actual spent for ${item.category}`}
                         className={`w-28 text-right font-mono font-semibold px-2 py-1 rounded border text-xs focus:outline-none ${
                           isConfirmed
                             ? 'bg-emerald-950/40 border-emerald-700 text-emerald-300 focus:border-emerald-500'

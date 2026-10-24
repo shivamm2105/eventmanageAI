@@ -34,6 +34,16 @@ describe('Timeline and Checklist Engine', () => {
       const eventDate = '2026-10-15';
       expect(calculatePhaseDueDate(eventDate, 'Event day')).toBe('2026-10-15');
     });
+
+    it('shifts days forward (+3 days) for Post-event phase', () => {
+      const eventDate = '2026-10-15';
+      expect(calculatePhaseDueDate(eventDate, 'Post-event')).toBe('2026-10-18');
+    });
+
+    it('falls back to today if event date is invalid format', () => {
+      const fallback = calculatePhaseDueDate('not-a-date', 'Week of event');
+      expect(isValidIsoDate(fallback)).toBe(true);
+    });
   });
 
   describe('isTaskOverdue', () => {

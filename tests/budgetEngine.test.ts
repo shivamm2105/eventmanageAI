@@ -9,6 +9,27 @@ import {
 import { BudgetItem } from '../shared/src/types';
 
 describe('Budget Planning Engine', () => {
+  const sampleItems: BudgetItem[] = [
+    {
+      id: '1',
+      category: 'Venue',
+      estimatedAmount: 50000,
+      actualAmount: 48000,
+    },
+    {
+      id: '2',
+      category: 'Catering',
+      estimatedAmount: 60000,
+      actualAmount: 65000,
+    },
+    {
+      id: '3',
+      category: 'Decor',
+      estimatedAmount: 20000,
+      actualAmount: 0, // Not confirmed yet, should use estimated
+    },
+  ];
+
   describe('Minor units conversions', () => {
     it('correctly converts decimals to minor integer units without floating point distortion', () => {
       expect(toMinorUnits(10.55)).toBe(1055);
@@ -24,26 +45,6 @@ describe('Budget Planning Engine', () => {
   });
 
   describe('calculateBudgetSummary', () => {
-    const sampleItems: BudgetItem[] = [
-      {
-        id: '1',
-        category: 'Venue',
-        estimatedAmount: 50000,
-        actualAmount: 48000,
-      },
-      {
-        id: '2',
-        category: 'Catering',
-        estimatedAmount: 60000,
-        actualAmount: 65000,
-      },
-      {
-        id: '3',
-        category: 'Decor',
-        estimatedAmount: 20000,
-        actualAmount: 0, // Not confirmed yet, should use estimated
-      },
-    ];
 
     it('accurately computes estimated, actual, and committed totals', () => {
       const summary = calculateBudgetSummary(150000, sampleItems, 10);
@@ -105,6 +106,37 @@ describe('Budget Planning Engine', () => {
         const sumPct = allocs.reduce((sum, item) => sum + item.percentage, 0);
         expect(sumPct).toBe(100);
       }
+    });
+
+    it('falls back safely to default allocations when celebration type is unknown', () => {
+      const fallback = getRecommendedCategoryAllocations('unknown_carnival_fest', 200000);
+      expect(fallback.length).toBeGreaterThan(0);
+      const totalPct = fallback.reduce((sum, item) => sum + item.percentage, 0);
+      expect(totalPct).toBe(100);
+    });
+
+    it('handles zero total budget gracefully without division-by-zero errors', () => {
+      const zeroSummary = calculateBudgetSummary(0, sampleItems, 10);
+      expect(zeroSummary.totalBudget).toBe(0);
+      expect(zeroSummary.remainingBudget).toBe(-133000);
+      expect(zeroSummary.isOverBudget).toBe(true);
+      expect(zeroSummary.utilizationPercent).toBe(0);
+    });
+
+    it('correctly aggregates custom expense items in calculations', () => {
+      const itemsWithCustom: BudgetItem[] = [
+        ...sampleItems,
+        {
+          id: 'custom-1',
+          category: 'Vintage Fireworks Permit',
+          estimatedAmount: 25000,
+          actualAmount: 22000,
+          isCustom: true,
+        },
+      ];
+      const summary = calculateBudgetSummary(200000, itemsWithCustom, 10);
+      expect(summary.totalEstimated).toBe(155000); // 130000 + 25000
+      expect(summary.totalActual).toBe(135000); // 113000 + 22000
     });
   });
 });

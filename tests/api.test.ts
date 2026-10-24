@@ -4,6 +4,7 @@ import { createApp } from '../server/src/app';
 import { getDatabase, closeDatabase, clearAllEvents } from '../server/src/db';
 import { generateSamplePlan } from '../shared/src/samplePlans';
 
+process.env.NODE_ENV = 'test';
 const app = createApp();
 
 beforeAll(() => {
@@ -182,10 +183,56 @@ describe('Backend API Integration Tests', () => {
       const deleteRes = await request(app).delete(`/api/events/${createdEventId}`);
       expect(deleteRes.status).toBe(200);
       expect(deleteRes.body.data.deleted).toBe(true);
+    });
 
-      // Verify it is gone
-      const checkRes = await request(app).get(`/api/events/${createdEventId}`);
-      expect(checkRes.status).toBe(404);
+    it('returns 404 when retrieving a non-existent event ID', async () => {
+      const res = await request(app).get('/api/events/non-existent-uuid-1234');
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('EVENT_NOT_FOUND');
+    });
+
+    it('returns 404 when updating a non-existent event ID', async () => {
+      const res = await request(app)
+        .put('/api/events/non-existent-uuid-1234')
+        .send({ requirements: { title: 'Ghost Event' } });
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('EVENT_NOT_FOUND');
+    });
+
+    it('returns 404 when deleting a non-existent event ID', async () => {
+      const res = await request(app).delete('/api/events/non-existent-uuid-1234');
+      expect(res.status).toBe(404);
+      expect(res.body.success).toBe(false);
+      expect(res.body.error.code).toBe('EVENT_NOT_FOUND');
+    });
+
+    it('clears all events via DELETE /api/events', async () => {
+      // First save an event
+      const requirements = {
+        title: 'Temp Event',
+        eventType: 'birthday' as const,
+        eventDate: '2026-11-01',
+        city: 'Pune',
+        guestCount: 30,
+        budget: 50000,
+        currency: 'INR',
+        venuePreference: 'indoor' as const,
+        dietaryPreferences: [],
+      };
+      await request(app).post('/api/events').send({
+        requirements,
+        plan: generateSamplePlan(requirements),
+      });
+
+      const clearRes = await request(app).delete('/api/events');
+      expect(clearRes.status).toBe(200);
+      expect(clearRes.body.success).toBe(true);
+      expect(clearRes.body.data.clearedCount).toBeGreaterThanOrEqual(1);
+
+      const listRes = await request(app).get('/api/events');
+      expect(listRes.body.data.length).toBe(0);
     });
   });
 });

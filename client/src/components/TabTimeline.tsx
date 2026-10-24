@@ -44,6 +44,17 @@ export const TabTimeline: React.FC<TabTimelineProps> = ({
     return calculateTimelineSummary(tasks);
   }, [tasks]);
 
+  React.useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal]);
+
   const toggleTask = (id: string) => {
     const updated = tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t));
     onUpdateTasks(updated);

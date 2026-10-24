@@ -49,6 +49,17 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
   const [newEstimatedBudget, setNewEstimatedBudget] = useState<number>(0);
   const [newNotes, setNewNotes] = useState<string>('');
 
+  React.useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowAddModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal]);
+
   const statusOptions: { value: VendorStatus; label: string; badgeClass: string }[] = [
     {
       value: 'research',
@@ -199,8 +210,18 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
             >
               {/* Header Accordion Bar */}
               <div
-                className="p-4 sm:p-5 flex items-center justify-between cursor-pointer select-none"
+                role="button"
+                tabIndex={0}
+                aria-expanded={isExpanded}
+                aria-controls={`vendor-details-${item.id}`}
+                className="p-4 sm:p-5 flex items-center justify-between cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-2xl"
                 onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setExpandedId(isExpanded ? null : item.id);
+                  }
+                }}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400 flex-shrink-0">
@@ -265,7 +286,10 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
 
               {/* Expanded Card Content */}
               {isExpanded && (
-                <div className="px-4 pb-6 sm:px-6 pt-2 border-t border-slate-800/80 space-y-5">
+                <div
+                  id={`vendor-details-${item.id}`}
+                  className="px-4 pb-6 sm:px-6 pt-2 border-t border-slate-800/80 space-y-5"
+                >
                   {/* Status and Financial Controls */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
