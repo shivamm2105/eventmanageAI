@@ -248,6 +248,37 @@ export const App: React.FC = () => {
     }
   };
 
+  // Import previously exported celebration plan or backup archive
+  const handleImportPlan = async (imported: EventRecord | EventRecord[]) => {
+    try {
+      if (Array.isArray(imported)) {
+        let count = 0;
+        for (const evt of imported) {
+          if (evt && evt.requirements && evt.plan) {
+            await saveNewEvent(evt.requirements, evt.plan);
+            count++;
+          }
+        }
+        await refreshEventsList();
+        setCurrentView('saved');
+        showToast(`Successfully imported ${count} celebration plan(s) from backup.`, 'success');
+      } else {
+        const saved = await saveNewEvent(imported.requirements, imported.plan);
+        setActiveEvent(saved);
+        await refreshEventsList();
+        setCurrentView('workspace');
+        showToast(`Imported "${saved.requirements.title}" successfully.`, 'success');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Failed to import celebration plan.', 'error');
+    }
+  };
+
+  const handleStatusUpdated = (newStatus: SystemStatusResponse) => {
+    setSystemStatus(newStatus);
+    setIsAiConfigured(newStatus.ai.isConfigured);
+  };
+
   // Export all saved plans
   const handleExportAll = async () => {
     try {
@@ -326,6 +357,9 @@ export const App: React.FC = () => {
               setWizardPrefill(activeEvent.requirements);
               setCurrentView('wizard');
             }}
+            onRegeneratePlan={() => {
+              handleGeneratePlan(activeEvent.requirements, !isAiConfigured);
+            }}
             onBackToSaved={() => setCurrentView('saved')}
             showToast={showToast}
           />
@@ -377,6 +411,9 @@ export const App: React.FC = () => {
         status={systemStatus}
         onClearAllData={handleClearAllData}
         onExportAll={handleExportAll}
+        onImportPlan={handleImportPlan}
+        onStatusUpdated={handleStatusUpdated}
+        showToast={showToast}
         totalSavedEvents={savedEvents.length}
       />
 

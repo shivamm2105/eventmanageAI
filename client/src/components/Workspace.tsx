@@ -18,6 +18,8 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  Copy,
+  RotateCcw,
 } from 'lucide-react';
 import {
   EventRecord,
@@ -38,6 +40,7 @@ interface WorkspaceProps {
   onUpdateEvent: (updated: EventRecord) => Promise<void>;
   onDeleteEvent: (id: string) => void;
   onEditRequirements: () => void;
+  onRegeneratePlan?: () => void;
   onBackToSaved: () => void;
   showToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
 }
@@ -47,6 +50,7 @@ export const Workspace: React.FC<WorkspaceProps> = ({
   onUpdateEvent,
   onDeleteEvent,
   onEditRequirements,
+  onRegeneratePlan,
   onBackToSaved,
   showToast,
 }) => {
@@ -142,6 +146,35 @@ export const Workspace: React.FC<WorkspaceProps> = ({
     showToast('Event plan JSON exported successfully.', 'info');
   };
 
+  const handleCopySummary = () => {
+    const summaryText =
+      `🎉 ${requirements.title}\n` +
+      `📅 Date: ${requirements.eventDate} (${daysUntil >= 0 ? `${daysUntil} days to go` : 'Past event'})\n` +
+      `📍 Location: ${requirements.city}\n` +
+      `👥 Guests: ${requirements.guestCount}\n` +
+      `💰 Budget: ${formatCurrency(requirements.budget, requirements.currency)}\n` +
+      `🎨 Theme: ${plan.recommendedTheme.name}\n\n` +
+      `Summary: ${plan.summary}\n\n` +
+      `Planned with CelebrAI — Intelligent Celebration Planner`;
+
+    navigator.clipboard.writeText(summaryText);
+    showToast('Event summary copied to clipboard for easy sharing.', 'success');
+  };
+
+  const handleRegenerateClick = () => {
+    if (
+      window.confirm(
+        'Regenerate celebration plan with AI? This will construct a fresh plan based on current requirements.'
+      )
+    ) {
+      if (onRegeneratePlan) {
+        onRegeneratePlan();
+      } else {
+        onEditRequirements();
+      }
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       {/* Back button */}
@@ -228,6 +261,24 @@ export const Workspace: React.FC<WorkspaceProps> = ({
             >
               <Save className="w-4 h-4" />
               <span>{isSaving ? 'Saving to SQLite...' : hasUnsavedChanges ? 'Save Changes' : 'Saved'}</span>
+            </button>
+
+            <button
+              onClick={handleRegenerateClick}
+              className="p-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-colors"
+              title="Regenerate Plan with AI"
+              aria-label="Regenerate Plan"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={handleCopySummary}
+              className="p-2.5 rounded-xl text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-700 border border-slate-700 transition-colors"
+              title="Copy Summary to Clipboard"
+              aria-label="Copy Summary"
+            >
+              <Copy className="w-4 h-4" />
             </button>
 
             <button

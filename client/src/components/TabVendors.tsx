@@ -17,6 +17,10 @@ import {
   CheckCircle2,
   AlertCircle,
   FileText,
+  Plus,
+  Trash2,
+  Copy,
+  Check,
 } from 'lucide-react';
 import {
   VendorCategoryPlanning,
@@ -38,6 +42,12 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
   const [expandedId, setExpandedId] = useState<string | null>(
     categories[0]?.id || null
   );
+
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [newCategoryName, setNewCategoryName] = useState<string>('');
+  const [newEstimatedBudget, setNewEstimatedBudget] = useState<number>(0);
+  const [newNotes, setNewNotes] = useState<string>('');
 
   const statusOptions: { value: VendorStatus; label: string; badgeClass: string }[] = [
     {
@@ -81,6 +91,51 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
     onUpdateCategories(updated);
   };
 
+  const handleDeleteCategory = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm('Remove this vendor category?')) {
+      onUpdateCategories(categories.filter((cat) => cat.id !== id));
+    }
+  };
+
+  const handleCopyQuestions = (item: VendorCategoryPlanning, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const text = `Questions for ${item.category} Vendor:\n` +
+      item.questionsToAsk.map((q, idx) => `${idx + 1}. ${q}`).join('\n');
+    navigator.clipboard.writeText(text);
+    setCopiedId(item.id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const handleAddCategorySubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategoryName.trim()) return;
+
+    const newVendor: VendorCategoryPlanning = {
+      id: `vendor-custom-${Date.now()}`,
+      category: newCategoryName.trim(),
+      status: 'research',
+      vendorName: '',
+      contactPerson: '',
+      phone: '',
+      email: '',
+      estimatedBudget: Math.max(0, newEstimatedBudget),
+      actualCost: 0,
+      notes: newNotes.trim(),
+      questionsToAsk: [
+        'What is your payment schedule and cancellation policy?',
+        'Are there any additional service taxes or overtime fees?',
+        'Do you provide insurance and what is your backup contingency protocol?',
+      ],
+    };
+
+    onUpdateCategories([...categories, newVendor]);
+    setNewCategoryName('');
+    setNewEstimatedBudget(0);
+    setNewNotes('');
+    setShowAddModal(false);
+  };
+
   const getCategoryIcon = (category: string) => {
     const lower = category.toLowerCase();
     if (lower.includes('venue')) return Building;
@@ -94,7 +149,7 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Honest Transparency Notice Banner */}
+      {/* Notice Banner */}
       <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-brand-400 mt-0.5 flex-shrink-0" />
         <div className="text-xs text-slate-300 leading-relaxed">
@@ -105,6 +160,24 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
           does not fabricate fake reviews or claim vendors are booked. Fill in your shortlisted
           vendors and use the questions below during vendor calls.
         </div>
+      </div>
+
+      {/* Header Bar */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-display text-lg font-bold text-white">Vendor Categories</h3>
+          <p className="text-xs text-slate-400">
+            {categories.length} vendor categorie(s) planned
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1.5 transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Vendor Category</span>
+        </button>
       </div>
 
       {/* Vendor Category Cards */}
@@ -155,21 +228,38 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <span className="hidden sm:inline-block text-xs text-slate-400">
-                    {item.questionsToAsk?.length || 0} Negotiation Questions
-                  </span>
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     type="button"
-                    className="p-1 text-slate-400 hover:text-white rounded-lg"
-                    aria-label={isExpanded ? 'Collapse vendor' : 'Expand vendor'}
+                    onClick={(e) => handleCopyQuestions(item, e)}
+                    className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 text-xs hidden sm:flex items-center gap-1 transition-colors"
+                    title="Copy questions to clipboard"
                   >
+                    {copiedId === item.id ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                    <span>{copiedId === item.id ? 'Copied' : 'Questions'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteCategory(item.id, e)}
+                    className="p-1.5 text-slate-500 hover:text-rose-400 rounded-lg transition-colors"
+                    title="Delete category"
+                    aria-label={`Delete ${item.category}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+
+                  <div className="p-1 text-slate-400">
                     {isExpanded ? (
                       <ChevronUp className="w-5 h-5" />
                     ) : (
                       <ChevronDown className="w-5 h-5" />
                     )}
-                  </button>
+                  </div>
                 </div>
               </div>
 
@@ -314,10 +404,31 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
                   {/* AI Questions to Ask */}
                   {item.questionsToAsk && item.questionsToAsk.length > 0 && (
                     <div className="p-4 rounded-xl bg-brand-950/30 border border-brand-900/50">
-                      <div className="flex items-center gap-2 mb-2 text-xs font-semibold text-brand-300">
-                        <HelpCircle className="w-4 h-4 text-brand-400" />
-                        <span>Crucial Questions to Ask Before Signing</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-brand-300">
+                          <HelpCircle className="w-4 h-4 text-brand-400" />
+                          <span>Crucial Questions to Ask Before Signing</span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => handleCopyQuestions(item, e)}
+                          className="text-[11px] text-brand-400 hover:text-brand-300 flex items-center gap-1"
+                        >
+                          {copiedId === item.id ? (
+                            <>
+                              <Check className="w-3 h-3 text-emerald-400" />
+                              <span className="text-emerald-400 font-semibold">Copied Questions!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3" />
+                              <span>Copy Questions</span>
+                            </>
+                          )}
+                        </button>
                       </div>
+
                       <ul className="space-y-1.5">
                         {item.questionsToAsk.map((q, qIdx) => (
                           <li
@@ -337,6 +448,78 @@ export const TabVendors: React.FC<TabVendorsProps> = ({
           );
         })}
       </div>
+
+      {/* Add Custom Vendor Modal */}
+      {showAddModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Add Vendor Category"
+        >
+          <div className="w-full max-w-md p-6 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-4">Add New Vendor Category</h3>
+            <form onSubmit={handleAddCategorySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Category Name <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g., Mehendi & Henna Artist, Fireworks, Valet, Security"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Estimated Budget ({currency})
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="500"
+                  value={newEstimatedBudget}
+                  onChange={(e) => setNewEstimatedBudget(Number(e.target.value))}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm font-mono text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Notes / Specification
+                </label>
+                <input
+                  type="text"
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder="e.g., Bridal mehendi for 15 relatives on pre-wedding night"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white shadow-glow"
+                >
+                  Add Category
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

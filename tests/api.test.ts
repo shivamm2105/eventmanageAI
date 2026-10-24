@@ -39,6 +39,23 @@ describe('Backend API Integration Tests', () => {
     });
   });
 
+  describe('POST /api/system/configure-ai & disconnect-ai', () => {
+    it('rejects too short API key with 400', async () => {
+      const res = await request(app)
+        .post('/api/system/configure-ai')
+        .send({ apiKey: 'short' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
+
+    it('disconnects live AI and switches safely to Demo Mode', async () => {
+      const res = await request(app).post('/api/system/disconnect-ai');
+      expect(res.status).toBe(200);
+      expect(res.body.configured).toBe(false);
+    });
+  });
+
   describe('POST /api/events/generate-plan', () => {
     it('rejects invalid payload with 400 and validation details', async () => {
       const res = await request(app)

@@ -190,13 +190,30 @@ export const TabTimeline: React.FC<TabTimelineProps> = ({
           ))}
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1.5 transition-colors shadow-sm ml-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Custom Task</span>
-        </button>
+        <div className="flex items-center gap-2 ml-auto">
+          {tasks.length > 0 && (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  const allDone = tasks.every((t) => t.completed);
+                  onUpdateTasks(tasks.map((t) => ({ ...t, completed: !allDone })));
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              >
+                {tasks.every((t) => t.completed) ? 'Mark All Pending' : 'Mark All Done'}
+              </button>
+            </>
+          )}
+
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Custom Task</span>
+          </button>
+        </div>
       </div>
 
       {/* Grouped Checklist by Phase */}

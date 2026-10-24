@@ -139,6 +139,37 @@ export function getRecommendedCategoryAllocations(
       { category: 'Banners & Signage', percentage: 10, notes: 'Wayfinding, welcome posters, programs' },
       { category: 'Safety & Sanitation', percentage: 10, notes: 'First aid, bins, water stations' },
     ],
+    engagement: [
+      { category: 'Venue & Lawns', percentage: 25, notes: 'Banquet hall or outdoor lawn' },
+      { category: 'Catering & Cocktails', percentage: 35, notes: 'Appetizers, main dinner, specialty drinks' },
+      { category: 'Ring Backdrop & Floral Decor', percentage: 15, notes: 'Stage backdrop, floral ring arch' },
+      { category: 'Cinematography & Portraits', percentage: 12, notes: 'Candid photo & couple teaser video' },
+      { category: 'DJ, Sound & Lights', percentage: 8, notes: 'Sound system, moving head lights, DJ' },
+      { category: 'Invitations & Favors', percentage: 5, notes: 'Digital video invites and guest favors' },
+    ],
+    baby_shower: [
+      { category: 'Venue & High Tea Lounge', percentage: 25, notes: 'Intimate banquet or cafe lounge' },
+      { category: 'Buffet & Mocktail Bar', percentage: 30, notes: 'Gourmet high tea, finger foods, mocktails' },
+      { category: 'Pastel Decor & Balloon Art', percentage: 20, notes: 'Organic balloon garland, baby photo arch' },
+      { category: 'Photography', percentage: 10, notes: 'Mom-to-be portraits and family candids' },
+      { category: 'Games, Emcee & Activities', percentage: 8, notes: 'Trivia, games host, prize props' },
+      { category: 'Custom Favors & Cake', percentage: 7, notes: 'Designer cake and personalized gift hampers' },
+    ],
+    corporate_gala: [
+      { category: 'Grand Ballroom Venue', percentage: 30, notes: 'Luxury hotel ballroom rental with staging' },
+      { category: 'Executive Banquet & Beverages', percentage: 35, notes: 'Multi-course plated or luxury buffet' },
+      { category: 'AV, LED Wall & Audio Engineering', percentage: 15, notes: 'High-res LED screens, wireless mics, PA' },
+      { category: 'Keynote Emcee & Live Act', percentage: 10, notes: 'Professional emcee and corporate entertainer' },
+      { category: 'Event Branding & Mementos', percentage: 6, notes: 'Bespoke awards, badges, gift bags' },
+      { category: 'Photography & Livestreaming', percentage: 4, notes: 'Multi-camera stream and PR photos' },
+    ],
+    other: [
+      { category: 'Venue & Space Booking', percentage: 30, notes: 'Primary event space rental' },
+      { category: 'Food & Beverage Catering', percentage: 35, notes: 'Buffet service and refreshments' },
+      { category: 'Decor & Ambiance', percentage: 15, notes: 'Lighting, florals, and seating arrangement' },
+      { category: 'Music, Sound & Photography', percentage: 12, notes: 'Audio setup, music curation, and photos' },
+      { category: 'Logistics & Supplies', percentage: 8, notes: 'Registration, signage, and misc supplies' },
+    ],
   };
 
   const selectedAllocations =

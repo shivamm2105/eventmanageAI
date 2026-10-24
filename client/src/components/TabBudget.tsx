@@ -155,13 +155,24 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
 
         {/* Contingency Buffer */}
         <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 col-span-2 lg:col-span-1">
-          <span className="text-xs font-semibold text-slate-400 block mb-1">
-            Contingency ({summary.contingencyPercent}%)
-          </span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-semibold text-slate-400">Contingency</span>
+            <select
+              value={contingencyPercent}
+              onChange={(e) => setContingencyPercent(Number(e.target.value))}
+              className="bg-slate-950 border border-slate-700 text-amber-300 font-semibold text-[10px] rounded px-1.5 py-0.5 focus:outline-none"
+              aria-label="Contingency buffer percentage"
+            >
+              <option value={5}>5% Buffer</option>
+              <option value={10}>10% Buffer</option>
+              <option value={15}>15% Buffer</option>
+              <option value={20}>20% Buffer</option>
+            </select>
+          </div>
           <div className="text-lg sm:text-xl font-bold font-mono text-amber-300 truncate">
             {formatCurrency(summary.contingencyAmount, currency)}
           </div>
-          <span className="text-[11px] text-slate-500 mt-0.5 block">Emergency fund</span>
+          <span className="text-[11px] text-slate-500 mt-0.5 block">Emergency fund buffer</span>
         </div>
       </div>
 
@@ -199,7 +210,21 @@ export const TabBudget: React.FC<TabBudgetProps> = ({
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {items.some((i) => i.actualAmount > 0) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm('Reset all confirmed actual amounts back to 0?')) {
+                    onUpdateItems(items.map((i) => ({ ...i, actualAmount: 0 })));
+                  }
+                }}
+                className="px-3 py-1.5 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              >
+                Reset Actuals
+              </button>
+            )}
+
             <button
               onClick={() => setShowAddModal(true)}
               className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1.5 transition-colors shadow-sm"

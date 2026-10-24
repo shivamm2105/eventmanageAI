@@ -98,5 +98,13 @@ describe('Budget Planning Engine', () => {
       const totalEstimated = allocations.reduce((sum, item) => sum + item.estimatedAmount, 0);
       expect(totalEstimated).toBe(500000);
     });
+
+    it('returns 100% allocations for engagement, baby shower, and corporate gala', () => {
+      for (const type of ['engagement', 'baby_shower', 'corporate_gala', 'community', 'birthday']) {
+        const allocs = getRecommendedCategoryAllocations(type, 100000);
+        const sumPct = allocs.reduce((sum, item) => sum + item.percentage, 0);
+        expect(sumPct).toBe(100);
+      }
+    });
   });
 });

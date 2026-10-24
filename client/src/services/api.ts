@@ -165,3 +165,29 @@ export async function clearAllEventsData(): Promise<number> {
   const json = await res.json();
   return json.data?.clearedCount || 0;
 }
+
+export async function configureAiApiKey(
+  apiKey: string,
+  model?: string
+): Promise<{ success: boolean; message: string; configured: boolean; model: string }> {
+  const res = await fetch('/api/system/configure-ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ apiKey, model }),
+  });
+
+  const json = await res.json();
+  if (!res.ok || !json.success) {
+    throw new Error(json.error?.message || 'Failed to verify and configure Gemini API key.');
+  }
+  return json;
+}
+
+export async function disconnectAi(): Promise<{ success: boolean; message: string; configured: boolean }> {
+  const res = await fetch('/api/system/disconnect-ai', {
+    method: 'POST',
+  });
+
+  const json = await res.json();
+  return json;
+}

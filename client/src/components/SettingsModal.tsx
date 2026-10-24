@@ -7,11 +7,23 @@ import {
   Database,
   Trash2,
   Download,
+  Upload,
   AlertTriangle,
   CheckCircle2,
-  Info,
+  Key,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  Sparkles,
+  Loader2,
 } from 'lucide-react';
-import { SystemStatusResponse } from '../services/api';
+import {
+  SystemStatusResponse,
+  configureAiApiKey,
+  disconnectAi,
+  fetchSystemStatus,
+} from '../services/api';
+import { EventRecord } from '@celebrai/shared';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -19,6 +31,9 @@ interface SettingsModalProps {
   status: SystemStatusResponse | null;
   onClearAllData: () => Promise<void>;
   onExportAll: () => void;
+  onImportPlan?: (event: EventRecord | EventRecord[]) => void;
+  onStatusUpdated?: (newStatus: SystemStatusResponse) => void;
+  showToast: (msg: string, type?: 'success' | 'warning' | 'error' | 'info') => void;
   totalSavedEvents: number;
 }
 
@@ -28,10 +43,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   status,
   onClearAllData,
   onExportAll,
+  onImportPlan,
+  onStatusUpdated,
+  showToast,
   totalSavedEvents,
 }) => {
   const [confirmClear, setConfirmClear] = useState<boolean>(false);
   const [isClearing, setIsClearing] = useState<boolean>(false);
+
+  // Gemini API Key config state
+  const [apiKeyInput, setApiKeyInput] = useState<string>('');
+  const [selectedModel, setSelectedModel] = useState<string>(
+    status?.ai.model || 'gemini-2.5-flash'
+  );
+  const [showKey, setShowKey] = useState<boolean>(false);
+  const [isTestingKey, setIsTestingKey] = useState<boolean>(false);
+  const [keyError, setKeyError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -45,6 +72,84 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleConnectKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!apiKeyInput.trim()) return;
+
+    setIsTestingKey(true);
+    setKeyError(null);
+
+    try {
+      const res = await configureAiApiKey(apiKeyInput.trim(), selectedModel);
+      showToast(res.message, 'success');
+
+      if (onStatusUpdated) {
+        if (status) {
+          onStatusUpdated({
+            ...status,
+            ai: {
+              ...status.ai,
+              isConfigured: true,
+              model: res.model,
+            },
+          });
+        } else {
+          fetchSystemStatus().then(onStatusUpdated).catch(() => {});
+        }
+      }
+      setApiKeyInput('');
+    } catch (err: any) {
+      setKeyError(err.message || 'Verification failed. Please check your Gemini API key.');
+      showToast(err.message || 'Failed to verify key.', 'error');
+    } finally {
+      setIsTestingKey(false);
+    }
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectAi();
+      showToast('Switched back to interactive Demo Mode.', 'info');
+      if (onStatusUpdated && status) {
+        onStatusUpdated({
+          ...status,
+          ai: {
+            ...status.ai,
+            isConfigured: false,
+          },
+        });
+      }
+    } catch (err: any) {
+      showToast('Failed to disconnect AI.', 'error');
+    }
+  };
+
+  const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed.requirements && parsed.plan && onImportPlan) {
+          onImportPlan(parsed);
+          showToast(`Imported "${parsed.requirements.title}" successfully.`, 'success');
+          onClose();
+        } else if (parsed.events && Array.isArray(parsed.events) && onImportPlan) {
+          onImportPlan(parsed.events as any);
+          onClose();
+        } else {
+          showToast('Invalid event plan JSON file format.', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to parse JSON file.', 'error');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto"
@@ -53,6 +158,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       aria-label="Settings and System Configuration"
     >
       <div className="w-full max-w-2xl my-8 p-6 sm:p-8 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl relative">
+        {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
@@ -60,10 +166,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h3 className="font-display text-lg font-bold text-white">
-                System Status & Data Settings
+                System Status & Configuration
               </h3>
               <p className="text-xs text-slate-400">
-                CelebrAI application configuration, GenAI provider state, and privacy safeguards.
+                Manage your real Gemini AI connection, storage, backups, and privacy.
               </p>
             </div>
           </div>
@@ -78,12 +184,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         <div className="space-y-6 text-xs text-slate-300">
-          {/* AI Status Card */}
-          <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
-            <div className="flex items-center justify-between mb-3">
+          {/* AI Connection Card */}
+          <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 font-semibold text-white text-sm">
                 <Cpu className="w-4 h-4 text-brand-400" />
-                <span>Generative AI Engine</span>
+                <span>Google Gemini AI Integration</span>
               </div>
               <span
                 className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
@@ -92,30 +198,108 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                 }`}
               >
-                {status?.ai.isConfigured ? 'Live Gemini AI Configured' : 'Demo Mode Active'}
+                {status?.ai.isConfigured ? 'Live Gemini AI Active' : 'Demo Mode Active'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-slate-400">
-              <div>
-                <span className="block text-[11px] text-slate-500">Active Model</span>
-                <strong className="text-slate-200 font-mono">
-                  {status?.ai.model || 'gemini-2.5-flash'}
-                </strong>
+            {status?.ai.isConfigured ? (
+              <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <div>
+                    <span className="font-semibold block text-white text-xs">
+                      Live Gemini Generation Active ({status.ai.model})
+                    </span>
+                    <span className="text-[11px] text-emerald-400">
+                      Plans are synthesized in real-time by Google AI Studio.
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleDisconnect}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                >
+                  Switch to Demo Mode
+                </button>
               </div>
-              <div>
-                <span className="block text-[11px] text-slate-500">Endpoint Rate Limit</span>
-                <strong className="text-slate-200 font-mono">
-                  {status?.ai.rateLimitMax || 25} requests /{' '}
-                  {status?.ai.rateLimitWindowMinutes || 15} min
-                </strong>
-              </div>
-            </div>
+            ) : (
+              <form onSubmit={handleConnectKey} className="space-y-3">
+                <p className="text-slate-400 text-xs">
+                  Connect your Google Gemini API key to enable live generative AI planning. Get a free key from{' '}
+                  <a
+                    href="https://aistudio.google.com/app/apikey"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-brand-400 underline inline-flex items-center gap-0.5 hover:text-brand-300"
+                  >
+                    Google AI Studio <ExternalLink className="w-3 h-3" />
+                  </a>.
+                </p>
 
-            <p className="mt-3 text-[11px] text-slate-400 leading-relaxed border-t border-slate-900 pt-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 inline mr-1" />
-              API keys are read exclusively on the server and are never delivered to the client, logged, or exposed in output bundles.
-            </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="sm:col-span-2 relative">
+                    <input
+                      type={showKey ? 'text' : 'password'}
+                      value={apiKeyInput}
+                      onChange={(e) => setApiKeyInput(e.target.value)}
+                      placeholder="Paste your GEMINI_API_KEY here..."
+                      className="w-full px-3 py-2 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                      tabIndex={-1}
+                    >
+                      {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+
+                  <div>
+                    <select
+                      value={selectedModel}
+                      onChange={(e) => setSelectedModel(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-brand-500 font-mono"
+                    >
+                      <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                      <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+                      <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+                    </select>
+                  </div>
+                </div>
+
+                {keyError && (
+                  <p className="text-xs text-rose-400 flex items-center gap-1">
+                    <AlertTriangle className="w-3.5 h-3.5" />
+                    {keyError}
+                  </p>
+                )}
+
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-[11px] text-slate-500">
+                    <ShieldCheck className="w-3 h-3 text-emerald-400 inline mr-1" />
+                    Key is tested live with Google and saved only to local gitignored .env.
+                  </span>
+                  <button
+                    type="submit"
+                    disabled={isTestingKey || !apiKeyInput.trim()}
+                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-brand-600 hover:bg-brand-500 disabled:opacity-50 text-white shadow-glow flex items-center gap-1.5 transition-all"
+                  >
+                    {isTestingKey ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Verifying with Google...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>Connect & Verify</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           {/* Database and Persistence Card */}
@@ -123,22 +307,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 font-semibold text-white text-sm">
                 <Database className="w-4 h-4 text-indigo-400" />
-                <span>Local Storage & Persistence</span>
+                <span>Embedded SQLite Database</span>
               </div>
               <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40">
-                SQLite WAL Mode
+                WAL Mode Enabled
               </span>
             </div>
             <p className="text-slate-400 leading-relaxed">
-              All celebrations, customized task statuses, confirmed actual budgets, and vendor records
-              are persisted safely to local SQLite tables using parameterized queries. You currently
-              have <strong className="text-white">{totalSavedEvents}</strong> plan(s) stored.
+              Celebration plans, customized task statuses, actual expenditures, and vendor notes are persisted to SQLite via parameterized queries. Currently storing <strong className="text-white">{totalSavedEvents}</strong> plan(s).
             </p>
           </div>
 
-          {/* Data Export & Reset Actions */}
+          {/* Data Export, Import & Reset */}
           <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-4">
-            <h4 className="font-semibold text-white text-sm">Data Export & Deletion</h4>
+            <h4 className="font-semibold text-white text-sm">Backup, Import & Reset</h4>
 
             <div className="flex flex-wrap items-center gap-3">
               <button
@@ -147,8 +329,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-colors"
               >
                 <Download className="w-4 h-4" />
-                <span>Export All Saved Plans (JSON)</span>
+                <span>Export Backup (JSON)</span>
               </button>
+
+              <label className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-2 transition-colors cursor-pointer">
+                <Upload className="w-4 h-4" />
+                <span>Import Plan (.json)</span>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  onChange={handleFileImport}
+                  className="hidden"
+                />
+              </label>
 
               {!confirmClear ? (
                 <button
@@ -179,22 +372,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* PromptWars Evaluation Badge Overview */}
-          <div className="p-4 rounded-2xl bg-brand-950/30 border border-brand-900/50">
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 className="w-4 h-4 text-brand-400" />
-              <h4 className="font-semibold text-brand-300 text-xs">
-                PromptWars Virtual Challenge 5 Compliance
-              </h4>
-            </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed">
-              Every major feature contributes directly to celebration planning (budgets, timelines,
-              vendor checklists, and customized event ideas). Evaluated across Code Quality,
-              Application Security, Runtime Efficiency, Automated Testing, WCAG Accessibility, and
-              Problem Alignment.
-            </p>
           </div>
         </div>
 

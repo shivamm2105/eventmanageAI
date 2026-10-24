@@ -48,6 +48,37 @@ Returns non-sensitive operational metadata.
     "localDatabase": true
   }
 }
+#### `POST /api/system/configure-ai`
+Validates a Gemini API Key live with Google GenAI SDK and switches application to live AI mode.
+
+**Request Body**:
+```json
+{
+  "apiKey": "AIzaSy...",
+  "model": "gemini-2.5-flash"
+}
+```
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "message": "Successfully connected to Google Gemini using gemini-2.5-flash!",
+  "configured": true,
+  "model": "gemini-2.5-flash"
+}
+```
+
+#### `POST /api/system/disconnect-ai`
+Clears in-memory API key and switches application safely back to interactive Demo Mode.
+
+**Response `200 OK`**:
+```json
+{
+  "success": true,
+  "message": "Switched to Demo Mode. Real API calls are disabled.",
+  "configured": false
+}
 ```
 
 ---

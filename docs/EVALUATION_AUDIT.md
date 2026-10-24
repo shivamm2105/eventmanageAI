@@ -39,12 +39,12 @@ This document provides a verifiable, honest audit of **CelebrAI — Your Intelli
 ### Criterion 4: Automated Testing
 | Test Suite | Tests Run | Tests Passed | Duration | Scope |
 | :--- | :--- | :--- | :--- | :--- |
-| `tests/budgetEngine.test.ts` | 8 | **8** | 28ms | Integer minor units math, floating-point prevention, currency formatting (INR/USD), overspending detection, contingency percentages. |
-| `tests/timelineEngine.test.ts` | 10 | **10** | 6ms | Date validation, leap years, phase due date relative offsets, overdue task detection, completion percentage calculation. |
-| `tests/schemas.test.ts` | 9 | **9** | 10ms | Zod validation of requirements, budget constraints, date formats, task items, vendor schemas. |
-| `tests/api.test.ts` | 9 | **9** | 117ms | Supertest API calls: Health check, system status, validation rejection (400), Demo Mode plan generation (200), full SQLite CRUD operations. |
+| `tests/budgetEngine.test.ts` | 9 | **9** | 32ms | Integer minor units math, floating-point prevention, currency formatting (INR/USD), overspending detection, 100% allocation for all 8 celebration types. |
+| `tests/timelineEngine.test.ts` | 10 | **10** | 8ms | Date validation, leap years, phase due date relative offsets, overdue task detection, completion percentage calculation. |
+| `tests/schemas.test.ts` | 9 | **9** | 12ms | Zod validation of requirements, budget constraints, date formats, task items, vendor schemas. |
+| `tests/api.test.ts` | 11 | **11** | 150ms | Supertest API calls: Health check, system status, live AI key configuration & disconnection, validation rejection (400), Demo Mode plan generation (200), full SQLite CRUD operations. |
 | **End-to-End Workflow** | Full Flow | **Passed** | 3m 33s | Browser subagent verified landing page, wizard steps, AI generation, budget editing, checklist completion, vendor accordion expansion, printable view, and SQLite persistence. |
-| **Total Automated Tests** | **36** | **36 (100%)** | **639ms** | All unit and integration tests passing. |
+| **Total Automated Tests** | **39** | **39 (100%)** | **~850ms** | All unit and integration tests passing. |
 
 ---
 
