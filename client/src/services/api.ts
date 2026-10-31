@@ -48,6 +48,25 @@ export interface EventListItem {
   updatedAt: string;
 }
 
+const LOCAL_STORAGE_KEY = 'celebrai_events_cache';
+
+function getLocalEvents(): EventRecord[] {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function setLocalEvents(events: EventRecord[]): void {
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(events));
+  } catch (e) {
+    console.warn('LocalStorage save failed:', e);
+  }
+}
+
 export async function fetchHealth(): Promise<HealthResponse> {
   const res = await fetch('/api/health');
   if (!res.ok) {
@@ -65,22 +84,57 @@ export async function fetchSystemStatus(): Promise<SystemStatusResponse> {
 }
 
 export async function fetchEvents(): Promise<EventListItem[]> {
-  const res = await fetch('/api/events');
-  if (!res.ok) {
-    throw new Error(`Failed to fetch events: HTTP ${res.status}`);
+  try {
+    const res = await fetch('/api/events');
+    if (res.ok) {
+      const json = await res.json();
+      const serverList: EventListItem[] = json.data || [];
+      // If server has events, update local cache list
+      if (serverList.length > 0) {
+        return serverList;
+      }
+    }
+  } catch (err) {
+    console.warn('Network fetch events failed, falling back to local cache', err);
   }
-  const json = await res.json();
-  return json.data || [];
+
+  // Fallback to local storage
+  const locals = getLocalEvents();
+  return locals.map((rec) => ({
+    id: rec.id,
+    title: rec.requirements.title,
+    eventType: rec.requirements.eventType,
+    eventDate: rec.requirements.eventDate,
+    city: rec.requirements.city,
+    guestCount: rec.requirements.guestCount,
+    budget: rec.requirements.budget,
+    currency: rec.requirements.currency,
+    createdAt: rec.createdAt,
+    updatedAt: rec.updatedAt,
+  }));
 }
 
 export async function fetchEvent(id: string): Promise<EventRecord> {
-  const res = await fetch(`/api/events/${encodeURIComponent(id)}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `Failed to fetch event ${id}`);
+  try {
+    const res = await fetch(`/api/events/${encodeURIComponent(id)}`);
+    if (res.ok) {
+      const json = await res.json();
+      const rec = json.data;
+      if (rec) {
+        // Cache single record locally
+        const list = getLocalEvents().filter((e) => e.id !== rec.id);
+        list.unshift(rec);
+        setLocalEvents(list);
+        return rec;
+      }
+    }
+  } catch (err) {
+    console.warn(`Failed to fetch event ${id} from server, checking local cache`, err);
   }
-  const json = await res.json();
-  return json.data;
+
+  const found = getLocalEvents().find((e) => e.id === id);
+  if (found) return found;
+  throw new Error(`Celebration event ${id} not found.`);
 }
 
 export async function generateAiPlan(
@@ -112,58 +166,112 @@ export async function saveNewEvent(
   plan: GeneratedPlan,
   id?: string
 ): Promise<EventRecord> {
-  const res = await fetch('/api/events', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ requirements, plan, id }),
-  });
+  const localFallbackRecord: EventRecord = {
+    id: id || `local-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+    requirements,
+    plan,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
 
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message || 'Failed to save event');
+  try {
+    const res = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirements, plan, id }),
+    });
+
+    const json = await res.json();
+    if (res.ok && json.success && json.data) {
+      const saved: EventRecord = json.data;
+      const list = getLocalEvents().filter((e) => e.id !== saved.id);
+      list.unshift(saved);
+      setLocalEvents(list);
+      return saved;
+    }
+  } catch (err) {
+    console.warn('Server save failed, storing in client local persistence', err);
   }
-  return json.data;
+
+  // Store in local storage fallback
+  const list = getLocalEvents().filter((e) => e.id !== localFallbackRecord.id);
+  list.unshift(localFallbackRecord);
+  setLocalEvents(list);
+  return localFallbackRecord;
 }
 
 export async function updateExistingEvent(
   id: string,
   updates: { requirements?: EventRequirements; plan?: GeneratedPlan }
 ): Promise<EventRecord> {
-  const res = await fetch(`/api/events/${encodeURIComponent(id)}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updates),
-  });
+  try {
+    const res = await fetch(`/api/events/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates),
+    });
 
-  const json = await res.json();
-  if (!res.ok || !json.success) {
-    throw new Error(json.error?.message || 'Failed to update event');
+    const json = await res.json();
+    if (res.ok && json.success && json.data) {
+      const saved = json.data;
+      const list = getLocalEvents().filter((e) => e.id !== id);
+      list.unshift(saved);
+      setLocalEvents(list);
+      return saved;
+    }
+  } catch (err) {
+    console.warn(`Server update failed for ${id}, updating local cache`, err);
   }
-  return json.data;
+
+  // Update in local cache
+  const list = getLocalEvents();
+  const index = list.findIndex((e) => e.id === id);
+  if (index !== -1) {
+    const current = list[index];
+    const updated: EventRecord = {
+      ...current,
+      requirements: updates.requirements || current.requirements,
+      plan: updates.plan || current.plan,
+      updatedAt: new Date().toISOString(),
+    };
+    list[index] = updated;
+    setLocalEvents(list);
+    return updated;
+  }
+
+  throw new Error('Failed to update event record');
 }
 
 export async function deleteEvent(id: string): Promise<void> {
-  const res = await fetch(`/api/events/${encodeURIComponent(id)}`, {
-    method: 'DELETE',
-  });
-
-  if (!res.ok) {
-    const json = await res.json().catch(() => ({}));
-    throw new Error(json.error?.message || 'Failed to delete event');
+  try {
+    await fetch(`/api/events/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+    });
+  } catch (err) {
+    console.warn(`Server delete failed for ${id}`, err);
   }
+
+  const list = getLocalEvents().filter((e) => e.id !== id);
+  setLocalEvents(list);
 }
 
 export async function clearAllEventsData(): Promise<number> {
-  const res = await fetch('/api/events', {
-    method: 'DELETE',
-  });
-
-  if (!res.ok) {
-    throw new Error('Failed to clear events data');
+  let count = 0;
+  try {
+    const res = await fetch('/api/events', {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      const json = await res.json();
+      count = json.data?.clearedCount || 0;
+    }
+  } catch (err) {
+    console.warn('Server clear failed', err);
   }
 
-  const json = await res.json();
-  return json.data?.clearedCount || 0;
+  const localCount = getLocalEvents().length;
+  setLocalEvents([]);
+  return Math.max(count, localCount);
 }
 
 export async function configureAiApiKey(

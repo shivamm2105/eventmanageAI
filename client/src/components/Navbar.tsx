@@ -38,10 +38,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               onClick={() => setCurrentView('landing')}
               className="flex items-center gap-2.5 text-left group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg p-1"
-              aria-label="CelebrAI Home"
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-700 via-indigo-600 to-violet-500 flex items-center justify-center shadow-glow group-hover:scale-105 transition-transform duration-200">
-                <Sparkles className="w-5 h-5 text-white" />
+                <Sparkles className="w-5 h-5 text-white" aria-hidden="true" />
               </div>
               <div>
                 <span className="font-display font-bold text-xl tracking-tight text-white flex items-center gap-1.5">

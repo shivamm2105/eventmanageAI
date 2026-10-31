@@ -19,13 +19,22 @@ import {
 } from './services/api';
 import { Navbar } from './components/Navbar';
 import { HeroLanding } from './components/HeroLanding';
-import { EventWizard } from './components/EventWizard';
-import { Workspace } from './components/Workspace';
-import { SavedEventsList } from './components/SavedEventsList';
 import { LoadingOverlay } from './components/LoadingOverlay';
-import { SettingsModal } from './components/SettingsModal';
 import { ToastContainer, ToastItem } from './components/ToastContainer';
 import { Sparkles, Heart } from 'lucide-react';
+
+const EventWizard = React.lazy(() =>
+  import('./components/EventWizard').then((m) => ({ default: m.EventWizard }))
+);
+const Workspace = React.lazy(() =>
+  import('./components/Workspace').then((m) => ({ default: m.Workspace }))
+);
+const SavedEventsList = React.lazy(() =>
+  import('./components/SavedEventsList').then((m) => ({ default: m.SavedEventsList }))
+);
+const SettingsModal = React.lazy(() =>
+  import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal }))
+);
 
 export const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<
@@ -331,69 +340,77 @@ export const App: React.FC = () => {
 
       {/* Main View Router */}
       <main className="flex-1">
-        {currentView === 'landing' && (
-          <HeroLanding
-            onStartPlanning={handleStartPlanning}
-            onViewSaved={() => setCurrentView('saved')}
-            savedCount={savedEvents.length}
-          />
-        )}
+        <React.Suspense
+          fallback={
+            <div className="min-h-[50vh] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+            </div>
+          }
+        >
+          {currentView === 'landing' && (
+            <HeroLanding
+              onStartPlanning={handleStartPlanning}
+              onViewSaved={() => setCurrentView('saved')}
+              savedCount={savedEvents.length}
+            />
+          )}
 
-        {currentView === 'wizard' && (
-          <EventWizard
-            initialValues={wizardPrefill}
-            isAiConfigured={isAiConfigured}
-            onSubmit={handleGeneratePlan}
-            onCancel={() => setCurrentView(savedEvents.length > 0 ? 'saved' : 'landing')}
-          />
-        )}
+          {currentView === 'wizard' && (
+            <EventWizard
+              initialValues={wizardPrefill}
+              isAiConfigured={isAiConfigured}
+              onSubmit={handleGeneratePlan}
+              onCancel={() => setCurrentView(savedEvents.length > 0 ? 'saved' : 'landing')}
+            />
+          )}
 
-        {currentView === 'workspace' && activeEvent && (
-          <Workspace
-            event={activeEvent}
-            onUpdateEvent={handleUpdateActiveEvent}
-            onDeleteEvent={(id) => handleDeleteEvent(id, activeEvent.requirements.title)}
-            onEditRequirements={() => {
-              setWizardPrefill(activeEvent.requirements);
-              setCurrentView('wizard');
-            }}
-            onRegeneratePlan={() => {
-              handleGeneratePlan(activeEvent.requirements, !isAiConfigured);
-            }}
-            onBackToSaved={() => setCurrentView('saved')}
-            showToast={showToast}
-          />
-        )}
+          {currentView === 'workspace' && activeEvent && (
+            <Workspace
+              event={activeEvent}
+              onUpdateEvent={handleUpdateActiveEvent}
+              onDeleteEvent={(id) => handleDeleteEvent(id, activeEvent.requirements.title)}
+              onEditRequirements={() => {
+                setWizardPrefill(activeEvent.requirements);
+                setCurrentView('wizard');
+              }}
+              onRegeneratePlan={() => {
+                handleGeneratePlan(activeEvent.requirements, !isAiConfigured);
+              }}
+              onBackToSaved={() => setCurrentView('saved')}
+              showToast={showToast}
+            />
+          )}
 
-        {currentView === 'saved' && (
-          <SavedEventsList
-            events={savedEvents}
-            onOpenEvent={handleOpenEvent}
-            onDeleteEvent={handleDeleteEvent}
-            onNewEvent={() => handleStartPlanning()}
-          />
-        )}
+          {currentView === 'saved' && (
+            <SavedEventsList
+              events={savedEvents}
+              onOpenEvent={handleOpenEvent}
+              onDeleteEvent={handleDeleteEvent}
+              onNewEvent={() => handleStartPlanning()}
+            />
+          )}
+        </React.Suspense>
       </main>
 
       {/* App Footer */}
-      <footer className="no-print border-t border-slate-900 bg-slate-950/80 py-8 mt-auto text-xs text-slate-500">
+      <footer className="no-print border-t border-slate-900 bg-slate-950/80 py-8 mt-auto text-xs text-slate-400">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-brand-600 flex items-center justify-center text-white">
+            <div className="w-5 h-5 rounded-md bg-brand-600 flex items-center justify-center text-white" aria-hidden="true">
               <Sparkles className="w-3 h-3" />
             </div>
-            <span className="font-semibold text-slate-300">CelebrAI</span>
-            <span>— Intelligent Celebration & Event Planner</span>
+            <span className="font-semibold text-slate-200">CelebrAI</span>
+            <span className="text-slate-300">— Intelligent Celebration & Event Planner</span>
           </div>
 
           <div className="flex items-center gap-4">
             <span className="text-[11px] text-slate-400">
               PromptWars Virtual Challenge 5 | Production-Ready Build
             </span>
-            <span>•</span>
+            <span className="text-slate-400">•</span>
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="text-slate-400 hover:text-white transition-colors"
+              className="text-slate-300 hover:text-white transition-colors underline-offset-4 hover:underline"
             >
               System Status
             </button>
@@ -405,17 +422,21 @@ export const App: React.FC = () => {
       {isGenerating && <LoadingOverlay isDemoMode={!isAiConfigured} />}
 
       {/* Settings & Status Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        status={systemStatus}
-        onClearAllData={handleClearAllData}
-        onExportAll={handleExportAll}
-        onImportPlan={handleImportPlan}
-        onStatusUpdated={handleStatusUpdated}
-        showToast={showToast}
-        totalSavedEvents={savedEvents.length}
-      />
+      {isSettingsOpen && (
+        <React.Suspense fallback={null}>
+          <SettingsModal
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            status={systemStatus}
+            onClearAllData={handleClearAllData}
+            onExportAll={handleExportAll}
+            onImportPlan={handleImportPlan}
+            onStatusUpdated={handleStatusUpdated}
+            showToast={showToast}
+            totalSavedEvents={savedEvents.length}
+          />
+        </React.Suspense>
+      )}
 
       {/* Accessible Toast Notification Stack */}
       <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />

@@ -1,0 +1,17 @@
+{
+  "name": "CelebrAI — Intelligent Celebration & Event Planner",
+  "short_name": "CelebrAI",
+  "description": "Plan weddings, birthdays, anniversaries, and community celebrations with AI precision.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

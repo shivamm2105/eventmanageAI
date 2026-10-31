@@ -13,8 +13,13 @@ router.get('/health', (_req: Request, res: Response) => {
   let dbHealthy = false;
   try {
     const db = getDatabase();
-    const row = db.prepare('SELECT 1 as alive').get() as { alive: number };
-    dbHealthy = row.alive === 1;
+    if (db) {
+      const row = db.prepare('SELECT 1 as alive').get() as { alive: number } | undefined;
+      dbHealthy = row?.alive === 1;
+    } else {
+      // In-memory fallback is active and healthy
+      dbHealthy = true;
+    }
   } catch (err) {
     dbHealthy = false;
   }
@@ -49,7 +54,7 @@ router.get('/system/status', (_req: Request, res: Response) => {
       rateLimitWindowMinutes: Math.round(config.rateLimitWindowMs / 60000),
     },
     persistence: {
-      engine: 'SQLite3 (WAL Mode)',
+      engine: getDatabase() ? 'SQLite3 (WAL Mode)' : 'In-Memory Serverless Engine',
       localDatabase: true,
     },
   });

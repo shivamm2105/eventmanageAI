@@ -2,19 +2,52 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237c3aed' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/></svg>" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CelebrAI — Intelligent Celebration & Event Planner</title>
+    <title>CelebrAI — Intelligent Celebration &amp; Event Planner</title>
     <meta
       name="description"
       content="CelebrAI: Plan weddings, birthdays, anniversaries, and community celebrations with GenAI-powered budgets, date-aware timelines, and vendor checklists."
     />
+    <meta name="theme-color" content="#020617" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://celebrai.vercel.app/" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://celebrai.vercel.app/" />
+    <meta property="og:title" content="CelebrAI — Intelligent Celebration &amp; Event Planner" />
+    <meta
+      property="og:description"
+      content="Plan weddings, birthdays, anniversaries, and community celebrations with GenAI-powered budgets, date-aware timelines, and vendor checklists."
+    />
+    <meta property="og:image" content="/favicon.svg" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="CelebrAI — Intelligent Celebration &amp; Event Planner" />
+    <meta
+      name="twitter:description"
+      content="Plan weddings, birthdays, anniversaries, and community celebrations with GenAI-powered budgets, date-aware timelines, and vendor checklists."
+    />
+
+    <!-- Google Fonts Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Progressive Asynchronous Non-blocking Font Loading -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=optional"
+      media="print"
+      onload="this.media='all'"
     />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=optional"
+      />
+    </noscript>
   </head>
   <body class="bg-slate-950 text-slate-100 min-h-screen selection:bg-brand-500 selection:text-white antialiased">
     <div id="root"></div>

@@ -85,7 +85,7 @@ export const HeroLanding: React.FC<HeroLandingProps> = ({
         </div>
 
         {/* Hero Title & Pitch */}
-        <div className="text-center max-w-3xl mx-auto">
+        <div className="text-center max-w-3xl mx-auto min-h-[190px]">
           <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.15]">
             Plan Any Celebration with{' '}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 via-indigo-300 to-violet-400">

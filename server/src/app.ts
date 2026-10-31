@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import compression from 'compression';
 import path from 'path';
 import fs from 'fs';
 import { config } from './config';
@@ -10,6 +11,9 @@ import { errorHandler } from './middleware/errorHandler';
 
 export function createApp(): express.Application {
   const app = express();
+
+  // Enable Gzip/Deflate compression for fast network transfer
+  app.use(compression());
 
   // Security Headers via Helmet
   app.use(
@@ -40,18 +44,29 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
-  // API Routes
+  // API Routes (Mounted under /api and root fallback for reverse proxies/serverless)
   app.use('/api', systemRouter);
   app.use('/api/events', eventsRouter);
+  app.use('/', systemRouter);
+  app.use('/events', eventsRouter);
 
-  // Serve static assets from client/dist if built
+  // Serve static assets from client/dist if built (for standalone node production server)
   const clientDistPath = path.resolve(process.cwd(), 'client', 'dist');
   if (fs.existsSync(clientDistPath)) {
-    app.use(express.static(clientDistPath));
+    app.use(
+      express.static(clientDistPath, {
+        maxAge: '1d',
+        setHeaders: (res, filePath) => {
+          if (filePath.includes('assets')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        },
+      })
+    );
 
     // Client-side SPA routing fallback
     app.use((req, res, next) => {
-      if (req.path.startsWith('/api')) {
+      if (req.path.startsWith('/api') || req.path.startsWith('/events') || req.path === '/health') {
         return next();
       }
       res.sendFile(path.join(clientDistPath, 'index.html'));
