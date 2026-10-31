@@ -16,8 +16,9 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@celebrai/shared": ["../shared/src"]
+      "@celebrai/shared": ["../shared/src/index.ts"],
+      "@celebrai/shared/*": ["../shared/src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "../shared/src/**/*"]
 }
