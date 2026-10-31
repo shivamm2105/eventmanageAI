@@ -41,11 +41,12 @@ export function getDatabase(): Database.Database | null {
       }
     }
 
-    dbInstance = new DatabaseConstructor(dbFilePath);
-    dbInstance.pragma('journal_mode = WAL');
-    dbInstance.pragma('foreign_keys = ON');
+    const db = new DatabaseConstructor(dbFilePath) as Database.Database;
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
 
-    initSchema(dbInstance);
+    initSchema(db);
+    dbInstance = db;
     return dbInstance;
   } catch (err) {
     console.warn('[DB] Failed to initialize SQLite database, switching to in-memory store:', err);
