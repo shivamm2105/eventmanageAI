@@ -23,16 +23,27 @@ export function createApp(): express.Application {
     })
   );
 
-  // CORS Configuration restricted to configured origins
+  // CORS Configuration
   app.use(
     cors({
       origin: (origin, callback) => {
         // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
         if (!origin) return callback(null, true);
-        if (config.clientOrigins.includes(origin) || !config.isProduction) {
+        if (
+          !config.isProduction ||
+          config.clientOrigins.includes('*') ||
+          config.clientOrigins.includes(origin) ||
+          origin.endsWith('.vercel.app') ||
+          origin.endsWith('.onrender.com') ||
+          origin.endsWith('.railway.app') ||
+          origin.includes('localhost')
+        ) {
           return callback(null, true);
         }
-        return callback(new Error(`CORS origin not allowed: ${origin}`));
+        if (process.env.CLIENT_ORIGIN) {
+          return callback(new Error(`CORS origin not allowed: ${origin}`));
+        }
+        return callback(null, true);
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

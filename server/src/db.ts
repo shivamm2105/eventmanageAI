@@ -1,8 +1,17 @@
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { config } from './config';
 import { EventRecord, EventRequirements, GeneratedPlan } from '../../shared/src';
+
+// Dynamically resolve better-sqlite3 so serverless environments without C++ bindings gracefully degrade to in-memory store
+let DatabaseConstructor: any = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  DatabaseConstructor = require('better-sqlite3');
+} catch {
+  // SQLite native module not available or serverless read-only filesystem
+}
 
 let dbInstance: Database.Database | null = null;
 let useMemoryFallback = false;
@@ -10,6 +19,10 @@ const inMemoryEvents = new Map<string, EventRecord>();
 
 export function getDatabase(): Database.Database | null {
   if (useMemoryFallback) return null;
+  if (!DatabaseConstructor) {
+    useMemoryFallback = true;
+    return null;
+  }
   if (dbInstance) return dbInstance;
 
   try {
@@ -28,7 +41,7 @@ export function getDatabase(): Database.Database | null {
       }
     }
 
-    dbInstance = new Database(dbFilePath);
+    dbInstance = new DatabaseConstructor(dbFilePath);
     dbInstance.pragma('journal_mode = WAL');
     dbInstance.pragma('foreign_keys = ON');
 
